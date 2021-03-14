@@ -51,6 +51,7 @@ func bar(res http.ResponseWriter, req *http.Request) {
 
 func foo(res http.ResponseWriter, req *http.Request) {
 	c, err := req.Cookie("session")
+	// if there is no cookie we set an empty cookie
 	if err != nil {
 		c = &http.Cookie{}
 	}
