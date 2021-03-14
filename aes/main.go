@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"fmt"
+	"io"
 	"log"
 
 	"golang.org/x/crypto/bcrypt"
@@ -35,6 +36,21 @@ func main() {
 		log.Fatalln(err)
 	}
 	fmt.Println(string(result2))
+
+	wtr := &bytes.Buffer{}
+
+	encWriter, err := encryptWriter(wtr, genKey)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	_, err = io.WriteString(encWriter, msg)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	encrypted := wtr.String()
+	fmt.Println(string(encrypted))
 }
 
 func enDecode(key []byte, input string) ([]byte, error) {
@@ -43,7 +59,14 @@ func enDecode(key []byte, input string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error: %w", err)
 	}
-	// not secure to use the same key for both, just for the example(key needs to be 16 bits, 24 bits or 32 bits)
+
+	// iv := make([]byte, aes.BlockSize)
+
+	// _, err = io.ReadFull(rand.Reader, iv)
+	// if err != nil {
+	// 	return nil, nil, fmt.Errorf(err)
+	// }
+
 	// salt is the second param
 	// returns a stream
 	stream := cipher.NewCTR(b, key)
@@ -63,4 +86,19 @@ func enDecode(key []byte, input string) ([]byte, error) {
 
 	return buff.Bytes(), nil
 
+}
+
+// make a wrapper around a writer
+func encryptWriter(wtr io.Writer, key []byte) (io.Writer, error) {
+	b, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("Error: %w", err)
+	}
+
+	stream := cipher.NewCTR(b, key)
+
+	return cipher.StreamWriter{
+		S: stream,
+		W: wtr,
+	}, nil
 }
